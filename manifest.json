@@ -1,0 +1,24 @@
+{
+  "name": "Markdown & Mermaid 即時預覽器",
+  "short_name": "MD Viewer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/markdown.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "accept": {
+        "text/markdown": [".md", ".markdown", ".mmd"],
+        "text/plain": [".txt"]
+      }
+    }
+  ]
+}
