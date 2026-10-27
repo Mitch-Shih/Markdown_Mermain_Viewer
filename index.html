@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Markdown &amp; Mermaid 即時預覽編輯器 v8.3</title>
+  <title>Markdown &amp; Mermaid 即時預覽編輯器 v8.7</title>
   <meta name="theme-color" content="#4f46e5" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/markdown.png" />
@@ -90,9 +90,111 @@
     .dark .mermaid-wrapper { border-color: #334155; background-color: #0f172a; }
     .mermaid-wrapper[data-render-mode="orthogonal"] .mermaid-body { background-image: radial-gradient(rgba(148, 163, 184, 0.28) 1px, transparent 1px); background-size: 16px 16px; }
     .dark .mermaid-wrapper[data-render-mode="orthogonal"] .mermaid-body { background-image: radial-gradient(rgba(71, 85, 105, 0.4) 1px, transparent 1px); background-size: 16px 16px; }
-    .mermaid-svg-box { cursor: pointer; user-select: none; }
+    .mermaid-svg-box { cursor: grab; user-select: none; overflow: hidden; position: relative; min-height: 180px; display: flex; align-items: center; justify-content: center; touch-action: none; }
     .mermaid-svg-box.is-panning { cursor: grabbing !important; }
-    .mermaid-svg-box svg { max-width: 100%; height: auto; margin: 0 auto; display: block; }
+    .mermaid-zoom-stage { transform-origin: center center; display: inline-flex; align-items: center; justify-content: center; }
+    .mermaid-svg-box svg { max-width: none !important; height: auto; margin: 0 auto; display: block; pointer-events: auto; shape-rendering: geometricPrecision; text-rendering: geometricPrecision; }
+    #diagram-zoom-content { cursor: grab; user-select: none; overflow: hidden !important; position: relative; }
+    #diagram-zoom-content.is-panning { cursor: grabbing !important; }
+    #diagram-zoom-stage { transform-origin: center center; display: inline-flex; align-items: center; justify-content: center; }
+    #diagram-zoom-stage svg { max-width: none !important; height: auto; display: block; pointer-events: auto; shape-rendering: geometricPrecision; text-rendering: geometricPrecision; }
+
+    /* Mermaid 互動式連線與節點走線追蹤 (Interactive Diagram Tracing) */
+    .mermaid-svg-box.is-panning svg g.node,
+    .mermaid-svg-box.is-panning svg g.edgePath,
+    #diagram-zoom-content.is-panning svg g.node,
+    #diagram-zoom-content.is-panning svg g.edgePath {
+      pointer-events: none !important;
+    }
+    .mermaid-svg-box svg g.node,
+    #diagram-zoom-stage svg g.node,
+    .mermaid-svg-box svg g.edgePath,
+    #diagram-zoom-stage svg g.edgePath,
+    .mermaid-svg-box svg path.flowchart-link,
+    #diagram-zoom-stage svg path.flowchart-link {
+      cursor: pointer;
+      pointer-events: all;
+      transition: opacity 0.18s ease, filter 0.18s ease;
+    }
+    svg.has-trace-active g.edgePath:not(.edge-highlighted),
+    svg.has-trace-active path.flowchart-link:not(.edge-highlighted),
+    svg.has-trace-active g.edgeLabel:not(.edge-label-highlighted) {
+      opacity: 0.12 !important;
+      transition: opacity 0.18s ease;
+    }
+    svg.has-trace-active g.node:not(.node-highlighted-active):not(.node-highlighted-source):not(.node-highlighted-target):not(.node-highlighted-neighbor) {
+      opacity: 0.22 !important;
+      transition: opacity 0.18s ease;
+    }
+    g.edgePath.edge-highlighted path.path,
+    path.flowchart-link.edge-highlighted {
+      stroke: #4f46e5 !important;
+      stroke-width: 3.5px !important;
+      filter: drop-shadow(0 0 6px rgba(79, 70, 229, 0.75)) !important;
+      opacity: 1 !important;
+    }
+    .dark g.edgePath.edge-highlighted path.path,
+    .dark path.flowchart-link.edge-highlighted {
+      stroke: #818cf8 !important;
+      filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.85)) !important;
+    }
+    g.edgePath.edge-highlighted marker path,
+    g.edgePath.edge-highlighted defs marker path,
+    svg marker.marker-highlighted path {
+      fill: #4f46e5 !important;
+      stroke: #4f46e5 !important;
+    }
+    .dark g.edgePath.edge-highlighted marker path,
+    .dark svg marker.marker-highlighted path {
+      fill: #818cf8 !important;
+      stroke: #818cf8 !important;
+    }
+    g.node.node-highlighted-active > rect,
+    g.node.node-highlighted-active > polygon,
+    g.node.node-highlighted-active > circle,
+    g.node.node-highlighted-active > path {
+      stroke: #4f46e5 !important;
+      stroke-width: 3px !important;
+      filter: drop-shadow(0 0 10px rgba(79, 70, 229, 0.6)) !important;
+      opacity: 1 !important;
+    }
+    .dark g.node.node-highlighted-active > rect,
+    .dark g.node.node-highlighted-active > polygon,
+    .dark g.node.node-highlighted-active > circle,
+    .dark g.node.node-highlighted-active > path {
+      stroke: #818cf8 !important;
+      filter: drop-shadow(0 0 12px rgba(129, 140, 248, 0.75)) !important;
+    }
+    g.node.node-highlighted-source > rect,
+    g.node.node-highlighted-source > polygon,
+    g.node.node-highlighted-source > circle {
+      stroke: #10b981 !important;
+      stroke-width: 2.5px !important;
+      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5)) !important;
+      opacity: 1 !important;
+    }
+    g.node.node-highlighted-target > rect,
+    g.node.node-highlighted-target > polygon,
+    g.node.node-highlighted-target > circle,
+    g.node.node-highlighted-neighbor > rect,
+    g.node.node-highlighted-neighbor > polygon,
+    g.node.node-highlighted-neighbor > circle {
+      stroke: #6366f1 !important;
+      stroke-width: 2.5px !important;
+      filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.5)) !important;
+      opacity: 1 !important;
+    }
+
+    /* 隔離 markdown-body 1.75 行高與 15.5px 字級，防止 Mermaid foreignObject 內部文字垂直撐開溢出外框 */
+    .markdown-body .mermaid-svg-box svg foreignObject,
+    .markdown-body .mermaid-svg-box svg foreignObject div,
+    .markdown-body .mermaid-svg-box svg foreignObject span,
+    #diagram-zoom-stage svg foreignObject,
+    #diagram-zoom-stage svg foreignObject div,
+    #diagram-zoom-stage svg foreignObject span {
+      line-height: 1.25 !important;
+      font-size: 13.5px !important;
+    }
 
     .resizer-handle { width: 6px; cursor: col-resize; position: relative; z-index: 25; user-select: none; touch-action: none; flex-shrink: 0; }
     .resizer-handle::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 2px; height: 36px; border-radius: 999px; background-color: rgba(148, 163, 184, 0.65); transition: all 0.15s ease; }
@@ -169,7 +271,7 @@
           <h1 class="font-bold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white truncate">Markdown &amp; Mermaid 即時預覽器</h1>
           <!-- 醒目版號徽章 -->
           <span id="app-version-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/90 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shrink-0">
-            v8.3
+            v8.7
           </span>
           <span class="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
             <i class="fa-solid fa-compass-drafting text-[10px]"></i> 完整圖片語法 + 資料夾樹 + 90° 拉直線
@@ -288,10 +390,10 @@
       <div class="hidden lg:flex items-center gap-1.5 text-xs">
         <span class="text-[11px] text-slate-500 dark:text-slate-400">預設連線：</span>
         <select id="global-mermaid-mode-select" class="px-2 py-1 rounded-md text-xs font-medium bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer">
-          <option value="orthogonal" selected>📐 直角正交拉直線 (90° 工程方塊圖)</option>
-          <option value="step">🪜 階梯直角拉直線 (Step-Line)</option>
-          <option value="linear">📏 點對點直接拉直線 (Direct Linear)</option>
-          <option value="basis">🌊 平滑貝茲曲線 (Smooth Basis)</option>
+          <option value="basis" selected>🌊 平滑曲線 (推薦：清晰分明無重疊)</option>
+          <option value="orthogonal">📐 直角正交折線 (90° 工程方塊圖)</option>
+          <option value="step">🪜 階梯直角折線 (Step-Line)</option>
+          <option value="linear">📏 點對點直接直線 (Direct Linear)</option>
         </select>
       </div>
 
@@ -440,7 +542,7 @@
     </div>
     <div class="flex items-center gap-3 shrink-0">
       <span id="split-ratio-label" class="hidden md:inline">版面比例：36% / 64%</span>
-      <span class="text-indigo-600 dark:text-indigo-400 font-semibold font-mono">v8.3 • 完整圖片語法 &amp; 90° 正交引擎</span>
+      <span class="text-indigo-600 dark:text-indigo-400 font-semibold font-mono">v8.7 • 互動式走線追蹤 &amp; 平滑曲線 / 90° 正交引擎</span>
     </div>
   </footer>
 
@@ -469,13 +571,23 @@
         </div>
 
         <div class="grid grid-cols-1 gap-1.5">
+          <button type="button" data-mode="basis" class="ctx-mode-btn w-full p-2 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer">
+            <div class="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-300 flex items-center justify-center shrink-0"><i class="fa-solid fa-wave-square text-xs"></i></div>
+            <div class="min-w-0 flex-1">
+              <div class="font-semibold text-slate-900 dark:text-white flex items-center justify-between">
+                <span>平滑曲線 (推薦：清晰分明無重疊)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
+              </div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Mermaid 專業貝茲曲線，分流各節點走線、路徑清楚</div>
+            </div>
+          </button>
+
           <button type="button" data-mode="orthogonal" class="ctx-mode-btn w-full p-2 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer">
             <div class="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0 font-mono font-bold text-xs">90°</div>
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-slate-900 dark:text-white flex items-center justify-between">
-                <span>直角正交拉直線 (工程方塊圖)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
+                <span>直角正交折線 (90° 工程方塊圖)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
               </div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">強制水平/垂直 90° 正交拉直線與匯流排轉折</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">水平/垂直 90° 直角轉折，自動軌道分流避開重疊</div>
             </div>
           </button>
 
@@ -483,9 +595,9 @@
             <div class="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0"><i class="fa-solid fa-stairs text-xs"></i></div>
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-slate-900 dark:text-white flex items-center justify-between">
-                <span>階梯直角拉直線 (Step-Line)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
+                <span>階梯直角折線 (Step-Line)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
               </div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">使用 stepAfter 階梯折線直接轉折</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">使用階梯折線直接轉折</div>
             </div>
           </button>
 
@@ -493,19 +605,9 @@
             <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0"><i class="fa-solid fa-ruler-horizontal text-xs"></i></div>
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-slate-900 dark:text-white flex items-center justify-between">
-                <span>點對點直接拉直線 (Direct Linear)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
+                <span>點對點直接直線 (Direct Linear)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
               </div>
               <div class="text-[11px] text-slate-500 dark:text-slate-400">節點間直接拉直線連接，去除圓弧曲線</div>
-            </div>
-          </button>
-
-          <button type="button" data-mode="basis" class="ctx-mode-btn w-full p-2 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer">
-            <div class="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-300 flex items-center justify-center shrink-0"><i class="fa-solid fa-wave-square text-xs"></i></div>
-            <div class="min-w-0 flex-1">
-              <div class="font-semibold text-slate-900 dark:text-white flex items-center justify-between">
-                <span>平滑貝茲曲線 (Smooth Basis)</span><span class="mode-active-dot hidden w-2 h-2 rounded-full bg-indigo-600"></span>
-              </div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">Mermaid 預設平滑圓弧曲線</div>
             </div>
           </button>
         </div>
@@ -573,23 +675,33 @@
     </div>
   </div>
 
-  <!-- 全螢幕圖表與圖片放大檢視燈箱 -->
-  <div id="diagram-zoom-modal" class="fixed inset-0 z-50 hidden flex-col bg-slate-950/90 backdrop-blur-sm p-4 sm:p-8">
-    <div class="flex items-center justify-between text-white mb-3 shrink-0">
-      <span id="zoom-modal-title" class="text-sm font-medium truncate"><i class="fa-solid fa-magnifying-glass-plus text-indigo-400 mr-2"></i>全螢幕檢視</span>
-      <button id="btn-close-zoom" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium cursor-pointer shrink-0">關閉 (ESC)</button>
+  <!-- 全螢幕圖表與圖片放大檢視燈箱 (支援無段縮放與拖拉平移) -->
+  <div id="diagram-zoom-modal" class="fixed inset-0 z-50 hidden flex-col bg-slate-950/90 backdrop-blur-sm p-4 sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 text-white mb-3 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <span id="zoom-modal-title" class="text-sm font-medium truncate"><i class="fa-solid fa-magnifying-glass-plus text-indigo-400 mr-2"></i>全螢幕檢視</span>
+        <span class="hidden sm:inline-block text-[11px] text-slate-400">（滾輪：放大縮小｜按住左鍵拖拉：平移畫布｜雙擊：重置）</span>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <div class="flex items-center bg-slate-800/90 border border-slate-700 rounded-lg p-0.5 text-xs">
+          <button id="btn-modal-zoom-out" type="button" class="px-2.5 py-1 rounded hover:bg-slate-700 text-slate-200 transition cursor-pointer" title="縮小"><i class="fa-solid fa-minus"></i></button>
+          <button id="btn-modal-zoom-reset" type="button" class="px-2.5 py-1 rounded hover:bg-slate-700 font-mono font-semibold text-indigo-300 min-w-[54px] text-center transition cursor-pointer" title="點擊重置為 100% 並置中">100%</button>
+          <button id="btn-modal-zoom-in" type="button" class="px-2.5 py-1 rounded hover:bg-slate-700 text-slate-200 transition cursor-pointer" title="放大"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <button id="btn-close-zoom" type="button" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-semibold cursor-pointer shrink-0">關閉 (ESC)</button>
+      </div>
     </div>
-    <div id="diagram-zoom-content" class="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-700 overflow-auto flex items-center justify-center p-4"></div>
+    <div id="diagram-zoom-content" class="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-700 flex items-center justify-center p-4"></div>
   </div>
 
   <!-- Toast 通知容器 -->
   <div id="toast-container" class="fixed bottom-10 right-5 z-[110] flex flex-col gap-2 pointer-events-none"></div>
 
   <script>
-    const APP_VERSION = 'v8.3';
+    const APP_VERSION = 'v8.7';
 
     const SafeStorage = {
-      KEY: 'md_mermaid_viewer_session_v8_3',
+      KEY: 'md_mermaid_viewer_session_v8_7',
       save(payload) {
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
@@ -600,7 +712,7 @@
       load() {
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
-            const raw = window.localStorage.getItem(this.KEY);
+            const raw = window.localStorage.getItem(this.KEY) || window.localStorage.getItem('md_mermaid_viewer_session_v8_6');
             return raw ? JSON.parse(raw) : null;
           }
         } catch (err) {
@@ -636,7 +748,7 @@
           '| **開啟單一檔案** | 直接將 `.md` / `.mmd` / `.txt` 拖入視窗，或在電腦上雙擊 `.md` 檔 | 立即載入文件內容並於右側同步渲染 |',
           '| **切換 Mermaid 連線模式** | **滑鼠左鍵點擊** 右側任一 Mermaid 圖表（或點擊圖表右上角按鈕） | 可自由切換 **90° 直角正交拉直線**、**階梯線**、**直接直線** 與 **平滑曲線** |',
           '| **高解析度圖表匯出** | 左鍵點擊 Mermaid 圖表開啟選單 ➔ 選擇 **1x ~ 4x** 倍率與底色 | 支援匯出無損 **SVG 向量圖**、高解析 **PNG 圖片** 與 **PDF 文件** |',
-          '| **畫布平移與全螢幕檢視** | 在圖表上**按住滑鼠左鍵拖拉**可平移畫布；點擊圖片可**全螢幕燈箱放大** | 方便檢視大型架構圖與多欄影像對比矩陣 |',
+          '| **圖表無段縮放與自由平移** | 在圖表上**滾動滑鼠滾輪**（或點右上角 `＋ / － / 100%`）可無段放大縮小；**按住左鍵拖拉**可 360° 自由平移畫布 | 內嵌預覽與全螢幕檢視皆支援獨立縮放與平移 |',
           '| **剪貼簿快速貼圖** | 在左側編輯區直接按 **`Ctrl + V`** 貼上螢幕截圖 | 自動將截圖轉為本地圖片連結並即時顯示於預覽區 |',
           '',
           '---',
@@ -767,10 +879,10 @@
     };
 
     const MODE_LABELS = {
-      orthogonal: '直角正交拉直線 (90°)',
-      step: '階梯直角拉直線 (Step)',
-      linear: '點對點直接拉直線 (Linear)',
-      basis: '平滑貝茲曲線 (Basis)'
+      basis: '平滑曲線 (Basis)',
+      orthogonal: '直角正交 (90°)',
+      step: '階梯折線 (Step)',
+      linear: '直接直線 (Linear)'
     };
 
     const state = {
@@ -788,9 +900,11 @@
       filterOnlyMd: true,
       currentFileName: 'guide/user-manual.md',
       lastDirectoryHandle: null,
-      globalMermaidMode: 'orthogonal',
+      globalMermaidMode: 'basis',
       applyModeToAll: true,
       perDiagramMode: new Map(),
+      diagramTransforms: new Map(), // 儲存每個 Mermaid 圖表的獨立縮放與平移狀態 { scale, tx, ty }
+      modalTransform: { scale: 1, tx: 0, ty: 0 },
       mermaidCache: new Map(),
       lastValidByIndex: new Map(),
       activeMenuDiagramIndex: null,
@@ -860,6 +974,9 @@
       diagramZoomModal: document.getElementById('diagram-zoom-modal'),
       zoomModalTitle: document.getElementById('zoom-modal-title'),
       diagramZoomContent: document.getElementById('diagram-zoom-content'),
+      btnModalZoomIn: document.getElementById('btn-modal-zoom-in'),
+      btnModalZoomOut: document.getElementById('btn-modal-zoom-out'),
+      btnModalZoomReset: document.getElementById('btn-modal-zoom-reset'),
       btnCloseZoom: document.getElementById('btn-close-zoom'),
       tabMobileTree: document.getElementById('tab-mobile-tree'),
       tabMobileEditor: document.getElementById('tab-mobile-editor'),
@@ -1592,12 +1709,15 @@
       return deduped;
     }
 
-    function buildOrthogonalPathFromPoints(points, mode, isHorizontalFlow) {
+    function buildOrthogonalPathFromPoints(points, mode, isHorizontalFlow, edgeIndex = 0) {
       if (!points || points.length < 2) return null;
       if (mode === 'linear') {
         return points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
       }
       const orthoPoints = [{ x: points[0].x, y: points[0].y }];
+      // 依 edgeIndex 分配微小軌道偏移 (-8px ~ +8px)，避免多條平行連線直接重合在同一條中軸線上
+      const laneOffset = ((edgeIndex % 5) - 2) * 4;
+
       for (let i = 1; i < points.length; i++) {
         const prev = orthoPoints[orthoPoints.length - 1];
         const curr = points[i];
@@ -1614,10 +1734,10 @@
           }
         } else {
           if (isHorizontalFlow) {
-            const midX = (prev.x + curr.x) / 2;
+            const midX = (prev.x + curr.x) / 2 + laneOffset;
             orthoPoints.push({ x: midX, y: prev.y }, { x: midX, y: curr.y }, { x: curr.x, y: curr.y });
           } else {
-            const midY = (prev.y + curr.y) / 2;
+            const midY = (prev.y + curr.y) / 2 + laneOffset;
             orthoPoints.push({ x: prev.x, y: midY }, { x: curr.x, y: midY }, { x: curr.x, y: curr.y });
           }
         }
@@ -1629,15 +1749,15 @@
       if (!svgElement || mode === 'basis') return;
       const isHorizontalFlow = /\b(flowchart|graph)\s+(LR|RL)\b/i.test(rawCode || '');
       const edgePaths = svgElement.querySelectorAll('path.flowchart-link, g.edgePaths path, g.edgePath path, path.transition');
-      edgePaths.forEach((pathEl) => {
+      edgePaths.forEach((pathEl, edgeIndex) => {
         const d = pathEl.getAttribute('d');
         const pts = parseSvgPathEndpointsAndWaypoints(d);
         if (pts.length >= 2) {
-          const newD = buildOrthogonalPathFromPoints(pts, mode, isHorizontalFlow);
+          const newD = buildOrthogonalPathFromPoints(pts, mode, isHorizontalFlow, edgeIndex);
           if (newD) {
             pathEl.setAttribute('d', newD);
-            pathEl.style.strokeLinejoin = 'miter';
-            pathEl.style.strokeLinecap = 'square';
+            pathEl.style.strokeLinejoin = 'round';
+            pathEl.style.strokeLinecap = 'round';
           }
         }
       });
@@ -1647,6 +1767,216 @@
           rect.setAttribute('ry', '0');
         });
       }
+    }
+
+    /*************************************************************************
+     * 6b. Mermaid 互動式走線與節點雙向高亮追蹤引擎 (Interactive Line Tracing)
+     *************************************************************************/
+    function bindMermaidInteractiveTracing(svgEl) {
+      if (!svgEl || svgEl._hasTracingBound) return;
+      svgEl._hasTracingBound = true;
+
+      // 確保注入專用高亮箭頭 Marker (深靛藍高亮發光箭頭)
+      let defs = svgEl.querySelector('defs');
+      if (!defs) {
+        defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        svgEl.insertBefore(defs, svgEl.firstChild);
+      }
+      const markerId = `mermaid-trace-marker-${++state.mermaidCounter}`;
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', markerId);
+      marker.setAttribute('viewBox', '0 0 10 10');
+      marker.setAttribute('refX', '8');
+      marker.setAttribute('refY', '5');
+      marker.setAttribute('markerUnits', 'strokeWidth');
+      marker.setAttribute('markerWidth', '7');
+      marker.setAttribute('markerHeight', '5');
+      marker.setAttribute('orient', 'auto');
+      marker.innerHTML = '<path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" stroke="#4f46e5"></path>';
+      defs.appendChild(marker);
+
+      const nodes = Array.from(svgEl.querySelectorAll('g.node, .nodes .node'));
+      const edgeGroups = Array.from(svgEl.querySelectorAll('g.edgePath, g.edgePaths .edgePath, path.flowchart-link'));
+      const edgeLabels = Array.from(svgEl.querySelectorAll('g.edgeLabel, g.edgeLabels .edgeLabel'));
+
+      // 建立節點查找表
+      const nodeMap = new Map();
+      nodes.forEach((n) => {
+        const rawId = n.id || '';
+        const cleanId = rawId.replace(/^flowchart-/, '').replace(/-\d+$/, '');
+        if (cleanId) nodeMap.set(cleanId, n);
+        if (rawId) nodeMap.set(rawId, n);
+      });
+
+      // 建立連線關聯模型
+      const edgeModels = [];
+      edgeGroups.forEach((eg, idx) => {
+        const isPathDirect = eg.tagName && eg.tagName.toLowerCase() === 'path';
+        const pathEl = isPathDirect ? eg : (eg.querySelector('path.path') || eg.querySelector('path'));
+        const cls = String((isPathDirect ? eg.getAttribute('class') : eg.getAttribute('class')) || '');
+        let sourceNode = null;
+        let targetNode = null;
+
+        // 方法 1: 從 LS-[sourceId] 與 LE-[targetId] 類別解析
+        const lsMatch = cls.match(/\bLS-([^\s]+)/);
+        const leMatch = cls.match(/\bLE-([^\s]+)/);
+        if (lsMatch && lsMatch[1]) {
+          const sKey = lsMatch[1];
+          sourceNode = nodeMap.get(sKey) || Array.from(nodes).find(n => (n.id || '').includes(sKey));
+        }
+        if (leMatch && leMatch[1]) {
+          const tKey = leMatch[1];
+          targetNode = nodeMap.get(tKey) || Array.from(nodes).find(n => (n.id || '').includes(tKey));
+        }
+
+        // 方法 2: 若未獲取，依據 path 幾何端點匹配最近之節點
+        if ((!sourceNode || !targetNode) && pathEl) {
+          try {
+            const d = pathEl.getAttribute('d');
+            const pts = parseSvgPathEndpointsAndWaypoints(d);
+            if (pts.length >= 2) {
+              const startP = pts[0];
+              const endP = pts[pts.length - 1];
+              let minStart = Infinity, bestStart = null;
+              let minEnd = Infinity, bestEnd = null;
+
+              nodes.forEach(n => {
+                const b = n.getBBox();
+                const d1 = Math.hypot(
+                  Math.max(b.x - startP.x, 0, startP.x - (b.x + b.width)),
+                  Math.max(b.y - startP.y, 0, startP.y - (b.y + b.height))
+                );
+                if (d1 < minStart) { minStart = d1; bestStart = n; }
+
+                const d2 = Math.hypot(
+                  Math.max(b.x - endP.x, 0, endP.x - (b.x + b.width)),
+                  Math.max(b.y - endP.y, 0, endP.y - (b.y + b.height))
+                );
+                if (d2 < minEnd) { minEnd = d2; bestEnd = n; }
+              });
+
+              if (!sourceNode && bestStart && minStart < 65) sourceNode = bestStart;
+              if (!targetNode && bestEnd && minEnd < 65) targetNode = bestEnd;
+            }
+          } catch (e) {}
+        }
+
+        const labelEl = edgeLabels[idx] || null;
+        const origMarker = pathEl ? pathEl.getAttribute('marker-end') : null;
+        edgeModels.push({ edgeEl: eg, pathEl, sourceNode, targetNode, labelEl, origMarker, idx });
+      });
+
+      // 建立節點 -> 關聯連線反向映射
+      const nodeEdgeMap = new Map();
+      nodes.forEach(n => nodeEdgeMap.set(n, []));
+      edgeModels.forEach(m => {
+        if (m.sourceNode && nodeEdgeMap.has(m.sourceNode)) {
+          nodeEdgeMap.get(m.sourceNode).push(m);
+        }
+        if (m.targetNode && nodeEdgeMap.has(m.targetNode)) {
+          nodeEdgeMap.get(m.targetNode).push(m);
+        }
+      });
+
+      let pinnedTarget = null; // 支援點擊鎖定追蹤狀態
+
+      function clearHighlights() {
+        svgEl.classList.remove('has-trace-active');
+        edgeModels.forEach(m => {
+          m.edgeEl.classList.remove('edge-highlighted');
+          if (m.pathEl && m.origMarker !== null) {
+            if (m.origMarker) m.pathEl.setAttribute('marker-end', m.origMarker);
+            else m.pathEl.removeAttribute('marker-end');
+          }
+          if (m.labelEl) m.labelEl.classList.remove('edge-label-highlighted');
+        });
+        nodes.forEach(n => {
+          n.classList.remove('node-highlighted-active', 'node-highlighted-source', 'node-highlighted-target', 'node-highlighted-neighbor');
+        });
+      }
+
+      function highlightEdgeModel(m) {
+        clearHighlights();
+        svgEl.classList.add('has-trace-active');
+        m.edgeEl.classList.add('edge-highlighted');
+        if (m.pathEl) {
+          m.pathEl.setAttribute('marker-end', `url(#${markerId})`);
+        }
+        if (m.labelEl) m.labelEl.classList.add('edge-label-highlighted');
+        if (m.sourceNode) m.sourceNode.classList.add('node-highlighted-source');
+        if (m.targetNode) m.targetNode.classList.add('node-highlighted-target');
+      }
+
+      function highlightNodeModel(node) {
+        clearHighlights();
+        svgEl.classList.add('has-trace-active');
+        node.classList.add('node-highlighted-active');
+        const connectedEdges = nodeEdgeMap.get(node) || [];
+        connectedEdges.forEach(m => {
+          m.edgeEl.classList.add('edge-highlighted');
+          if (m.pathEl) {
+            m.pathEl.setAttribute('marker-end', `url(#${markerId})`);
+          }
+          if (m.labelEl) m.labelEl.classList.add('edge-label-highlighted');
+          const neighbor = m.sourceNode === node ? m.targetNode : m.sourceNode;
+          if (neighbor && neighbor !== node) {
+            neighbor.classList.add('node-highlighted-neighbor');
+          }
+        });
+      }
+
+      // 綁定連線滑鼠懸浮與點擊
+      edgeModels.forEach(m => {
+        m.edgeEl.addEventListener('mouseenter', () => {
+          if (pinnedTarget) return;
+          highlightEdgeModel(m);
+        });
+        m.edgeEl.addEventListener('mouseleave', () => {
+          if (pinnedTarget) return;
+          clearHighlights();
+        });
+        m.edgeEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (pinnedTarget === m) {
+            pinnedTarget = null;
+            clearHighlights();
+          } else {
+            pinnedTarget = m;
+            highlightEdgeModel(m);
+          }
+        });
+      });
+
+      // 綁定節點滑鼠懸浮與點擊
+      nodes.forEach(n => {
+        n.addEventListener('mouseenter', () => {
+          if (pinnedTarget) return;
+          highlightNodeModel(n);
+        });
+        n.addEventListener('mouseleave', () => {
+          if (pinnedTarget) return;
+          clearHighlights();
+        });
+        n.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (pinnedTarget === n) {
+            pinnedTarget = null;
+            clearHighlights();
+          } else {
+            pinnedTarget = n;
+            highlightNodeModel(n);
+          }
+        });
+      });
+
+      // 點擊空白處解除鎖定
+      svgEl.addEventListener('click', (e) => {
+        if (e.target.closest('g.node') || e.target.closest('g.edgePath')) return;
+        if (pinnedTarget) {
+          pinnedTarget = null;
+          clearHighlights();
+        }
+      });
     }
 
     /*************************************************************************
@@ -1688,7 +2018,7 @@
           currentMermaidBlocks.push(rawCode);
           const encodedSource = encodeURIComponent(rawCode);
           const mode = getDiagramMode(index);
-          const modeLabel = MODE_LABELS[mode] || MODE_LABELS.orthogonal;
+          const modeLabel = MODE_LABELS[mode] || MODE_LABELS.basis;
 
           return `
             <div class="mermaid-wrapper my-5" data-mermaid-index="${index}" data-mermaid-source="${encodedSource}" data-render-mode="${mode}">
@@ -1696,13 +2026,28 @@
                 <div class="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
                   <i class="fa-solid fa-diagram-project text-indigo-500"></i>
                   <span>Mermaid 圖表 #${index + 1}</span>
-                  <span class="mermaid-mode-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/90 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-800/70">
+                  <button type="button" class="btn-toggle-diagram-mode inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/90 dark:hover:bg-indigo-900/90 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-800/70 transition cursor-pointer" title="點擊直接切換連線風格：平滑曲線 / 90° 正交 / 階梯線 / 直線">
                     <i class="fa-solid fa-route text-[9px]"></i>
                     <span class="mode-pill-text">${escapeHtml(modeLabel)}</span>
-                  </span>
+                    <i class="fa-solid fa-arrows-rotate text-[8px] opacity-60 ml-0.5"></i>
+                  </button>
                   <span class="mermaid-block-badge inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">渲染中...</span>
                 </div>
-                <div class="flex items-center gap-1.5">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <div class="inline-flex items-center bg-slate-200/75 dark:bg-slate-800 rounded-lg p-0.5 text-[11px] border border-slate-300/60 dark:border-slate-700">
+                    <button type="button" class="btn-mermaid-zoom-out px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="縮小圖表 (或直接在圖表滾動滑鼠滾輪)">
+                      <i class="fa-solid fa-minus text-[10px]"></i>
+                    </button>
+                    <button type="button" class="btn-mermaid-zoom-reset px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 font-mono font-semibold text-indigo-600 dark:text-indigo-400 min-w-[46px] text-center transition cursor-pointer" title="點擊重置縮放與平移位置 (100%)">
+                      100%
+                    </button>
+                    <button type="button" class="btn-mermaid-zoom-in px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="放大圖表 (或直接在圖表滾動滑鼠滾輪)">
+                      <i class="fa-solid fa-plus text-[10px]"></i>
+                    </button>
+                    <button type="button" class="btn-mermaid-pan-reset px-1.5 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition cursor-pointer" title="置中並重設視角">
+                      <i class="fa-solid fa-compress-arrows-alt text-[10px]"></i>
+                    </button>
+                  </div>
                   <button type="button" class="btn-open-mermaid-menu px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11px] shadow-2xs transition cursor-pointer">
                     <i class="fa-solid fa-sliders mr-1"></i>渲染模式 / 另存
                   </button>
@@ -1714,8 +2059,8 @@
                   </button>
                 </div>
               </div>
-              <div class="mermaid-body relative p-4 sm:p-6 flex flex-col items-center justify-center min-h-[100px]">
-                <div class="mermaid-svg-box w-full overflow-x-auto flex justify-center" title="點擊滑鼠左鍵：開啟渲染模式與另存選單｜按住左鍵拖拉：平移畫布"></div>
+              <div class="mermaid-body relative p-4 sm:p-6 flex flex-col items-center justify-center min-h-[140px]">
+                <div class="mermaid-svg-box w-full flex justify-center" title="滾輪：放大縮小圖表｜按住左鍵拖拉：自由平移畫布｜點擊左鍵：開啟渲染模式與另存選單"></div>
                 <div class="mermaid-error-box hidden w-full"></div>
               </div>
             </div>
@@ -1806,7 +2151,7 @@
       wrapper.setAttribute('data-render-mode', mode);
 
       const modePillText = wrapper.querySelector('.mode-pill-text');
-      if (modePillText) modePillText.textContent = MODE_LABELS[mode] || MODE_LABELS.orthogonal;
+      if (modePillText) modePillText.textContent = MODE_LABELS[mode] || MODE_LABELS.basis;
 
       const svgBox = wrapper.querySelector('.mermaid-svg-box');
       const errorBox = wrapper.querySelector('.mermaid-error-box');
@@ -1819,7 +2164,13 @@
       const cacheKey = `${currentTheme}::${mode}::${code}`;
 
       if (state.mermaidCache.has(cacheKey)) {
-        svgBox.innerHTML = state.mermaidCache.get(cacheKey);
+        svgBox.innerHTML = `<div class="mermaid-zoom-stage">${state.mermaidCache.get(cacheKey)}</div>`;
+        const stageEl = svgBox.querySelector('.mermaid-zoom-stage');
+        const svgEl = stageEl?.querySelector('svg');
+        if (svgEl) {
+          bindMermaidInteractiveTracing(svgEl);
+        }
+        applyMermaidTransformToWrapper(wrapper);
         errorBox.classList.add('hidden');
         if (badge) badge.textContent = '✓ 已繪製';
         return true;
@@ -1835,13 +2186,18 @@
 
         if (renderToken && renderToken !== activeRenderToken) return true;
 
-        svgBox.innerHTML = svg;
-        const svgEl = svgBox.querySelector('svg');
+        svgBox.innerHTML = `<div class="mermaid-zoom-stage">${svg}</div>`;
+        const stageEl = svgBox.querySelector('.mermaid-zoom-stage');
+        const svgEl = stageEl?.querySelector('svg');
         if (svgEl && mode !== 'basis') {
           applyPostProcessToMermaidSvg(svgEl, mode, code);
         }
+        if (svgEl) {
+          bindMermaidInteractiveTracing(svgEl);
+        }
 
-        state.mermaidCache.set(cacheKey, svgBox.innerHTML);
+        state.mermaidCache.set(cacheKey, stageEl ? stageEl.innerHTML : svg);
+        applyMermaidTransformToWrapper(wrapper);
         errorBox.classList.add('hidden');
         if (badge) badge.textContent = '✓ 已繪製';
         return true;
@@ -2033,12 +2389,238 @@
      * 9. 互動事件與雙分隔線拖拉綁定
      *    智慧區分「圖文超連結 [![alt](img)](https://...)」與「點擊圖片放大燈箱」
      *************************************************************************/
-    function openImageLightbox(srcUrl, titleText) {
-      if (!srcUrl) return;
-      els.zoomModalTitle.innerHTML = `<i class="fa-regular fa-image text-indigo-400 mr-2"></i>圖片全螢幕檢視：${escapeHtml(titleText || '')}`;
-      els.diagramZoomContent.innerHTML = `<img src="${escapeHtml(srcUrl)}" alt="${escapeHtml(titleText || '')}" class="max-w-full max-h-[82vh] object-contain rounded-lg shadow-lg" />`;
+    function getMermaidTransform(idx) {
+      if (!state.diagramTransforms.has(idx)) {
+        state.diagramTransforms.set(idx, { scale: 1, tx: 0, ty: 0 });
+      }
+      return state.diagramTransforms.get(idx);
+    }
+
+    // 確保 SVG 記錄原始基準向量寬高，並移除 max-width 限制，讓放大時由瀏覽器重新向量光柵化 (100% 銳利不模糊)
+    function ensureSvgBaseSize(svgEl, containerEl) {
+      if (!svgEl) return null;
+      let baseW = parseFloat(svgEl.getAttribute('data-base-w'));
+      let baseH = parseFloat(svgEl.getAttribute('data-base-h'));
+      if (!baseW || !baseH) {
+        const dims = getSvgIntrinsicDimensions(svgEl);
+        baseW = dims.width || 800;
+        baseH = dims.height || 600;
+        // 若圖表本身比容器寬，初始 100% 時自動配適容器寬度，但保留真實向量比例
+        if (containerEl && containerEl.clientWidth > 80) {
+          const maxInitW = containerEl.clientWidth - 32;
+          if (baseW > maxInitW) {
+            const ratio = maxInitW / baseW;
+            baseW = Math.round(baseW * ratio);
+            baseH = Math.round(baseH * ratio);
+          }
+        }
+        svgEl.setAttribute('data-base-w', String(baseW));
+        svgEl.setAttribute('data-base-h', String(baseH));
+        svgEl.style.maxWidth = 'none';
+      }
+      return { baseW, baseH };
+    }
+
+    function applyMermaidTransformToWrapper(wrapper) {
+      if (!wrapper) return;
+      const idx = Number(wrapper.getAttribute('data-mermaid-index'));
+      const t = getMermaidTransform(idx);
+      const box = wrapper.querySelector('.mermaid-svg-box');
+      const stage = wrapper.querySelector('.mermaid-zoom-stage');
+      const svgEl = stage?.querySelector('svg');
+
+      if (stage) {
+        stage.style.transform = `translate(${t.tx.toFixed(1)}px, ${t.ty.toFixed(1)}px)`;
+      }
+      if (svgEl) {
+        const base = ensureSvgBaseSize(svgEl, box);
+        if (base) {
+          const targetW = Math.max(40, Math.round(base.baseW * t.scale));
+          const targetH = Math.max(30, Math.round(base.baseH * t.scale));
+          svgEl.style.width = `${targetW}px`;
+          svgEl.style.height = `${targetH}px`;
+          svgEl.setAttribute('width', String(targetW));
+          svgEl.setAttribute('height', String(targetH));
+        }
+      }
+      const resetBtn = wrapper.querySelector('.btn-mermaid-zoom-reset');
+      if (resetBtn) {
+        resetBtn.textContent = `${Math.round(t.scale * 100)}%`;
+      }
+    }
+
+    // 以滑鼠游標所在位置為精確幾何中心進行無損向量縮放
+    function zoomMermaidAtPoint(wrapper, clientX, clientY, newScale) {
+      if (!wrapper) return;
+      const idx = Number(wrapper.getAttribute('data-mermaid-index'));
+      const t = getMermaidTransform(idx);
+      if (newScale === t.scale) return;
+
+      const box = wrapper.querySelector('.mermaid-svg-box');
+      const stage = wrapper.querySelector('.mermaid-zoom-stage');
+      const svgEl = stage?.querySelector('svg');
+      if (!box || !stage || !svgEl) return;
+
+      const rectBefore = svgEl.getBoundingClientRect();
+      if (rectBefore.width <= 0 || rectBefore.height <= 0) return;
+
+      // 1. 計算縮放前滑鼠相對於 SVG 寬高的比例位置
+      const fx = (clientX - rectBefore.left) / rectBefore.width;
+      const fy = (clientY - rectBefore.top) / rectBefore.height;
+
+      // 2. 更新倍率並設定向量圖實體寬高 (確保縮放永遠以 100% 原始向量清晰重繪)
+      t.scale = newScale;
+      const base = ensureSvgBaseSize(svgEl, box);
+      if (base) {
+        const targetW = Math.max(40, Math.round(base.baseW * t.scale));
+        const targetH = Math.max(30, Math.round(base.baseH * t.scale));
+        svgEl.style.width = `${targetW}px`;
+        svgEl.style.height = `${targetH}px`;
+        svgEl.setAttribute('width', String(targetW));
+        svgEl.setAttribute('height', String(targetH));
+      }
+
+      // 3. 量測更新尺寸後的位置，並補償平移量使該點絕對鎖定於滑鼠位置
+      const rectAfter = svgEl.getBoundingClientRect();
+      const curX = rectAfter.left + fx * rectAfter.width;
+      const curY = rectAfter.top + fy * rectAfter.height;
+
+      t.tx += (clientX - curX);
+      t.ty += (clientY - curY);
+      stage.style.transform = `translate(${t.tx.toFixed(1)}px, ${t.ty.toFixed(1)}px)`;
+
+      const resetBtn = wrapper.querySelector('.btn-mermaid-zoom-reset');
+      if (resetBtn) {
+        resetBtn.textContent = `${Math.round(t.scale * 100)}%`;
+      }
+    }
+
+    // 智慧型阻尼滾輪計算：防止 Windows 平滑滾動或高 DPI 滑鼠滾一下觸發多次事件導致倍率暴衝
+    function computeSmoothZoomScale(currentScale, wheelEvent) {
+      let dy = wheelEvent.deltaY;
+      if (wheelEvent.deltaMode === 1) dy *= 33; // 行模式轉像素
+      else if (wheelEvent.deltaMode === 2) dy *= 300; // 頁模式轉像素
+
+      // 限制單次事件最大 delta，採用温和線性步進
+      const clampedDy = Math.max(-120, Math.min(120, dy));
+      const sensitivity = wheelEvent.shiftKey ? 0.00025 : 0.00055;
+      const step = -clampedDy * sensitivity * Math.max(0.75, Math.min(1.6, Math.sqrt(currentScale)));
+      return Math.max(0.2, Math.min(12, Number((currentScale + step).toFixed(3))));
+    }
+
+    function zoomMermaidWrapper(wrapper, deltaScale, reset = false) {
+      if (!wrapper) return;
+      const idx = Number(wrapper.getAttribute('data-mermaid-index'));
+      const t = getMermaidTransform(idx);
+      if (reset) {
+        t.scale = 1;
+        t.tx = 0;
+        t.ty = 0;
+        applyMermaidTransformToWrapper(wrapper);
+        return;
+      }
+      const box = wrapper.querySelector('.mermaid-svg-box');
+      if (!box) return;
+      const rect = box.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const newScale = Math.max(0.2, Math.min(12, Number((t.scale + deltaScale).toFixed(2))));
+      zoomMermaidAtPoint(wrapper, cx, cy, newScale);
+    }
+
+    function applyModalTransform() {
+      const stage = document.getElementById('diagram-zoom-stage');
+      const t = state.modalTransform;
+      const svgEl = stage?.querySelector('svg');
+
+      if (stage) {
+        if (svgEl) {
+          stage.style.transform = `translate(${t.tx.toFixed(1)}px, ${t.ty.toFixed(1)}px)`;
+          const base = ensureSvgBaseSize(svgEl, els.diagramZoomContent);
+          if (base) {
+            const targetW = Math.max(40, Math.round(base.baseW * t.scale));
+            const targetH = Math.max(30, Math.round(base.baseH * t.scale));
+            svgEl.style.width = `${targetW}px`;
+            svgEl.style.height = `${targetH}px`;
+            svgEl.setAttribute('width', String(targetW));
+            svgEl.setAttribute('height', String(targetH));
+          }
+        } else {
+          stage.style.transform = `translate(${t.tx.toFixed(1)}px, ${t.ty.toFixed(1)}px) scale(${t.scale.toFixed(3)})`;
+        }
+      }
+      if (els.btnModalZoomReset) {
+        els.btnModalZoomReset.textContent = `${Math.round(t.scale * 100)}%`;
+      }
+    }
+
+    // 燈箱全螢幕檢視：以滑鼠游標所在位置為精確幾何中心縮放
+    function zoomModalAtPoint(clientX, clientY, newScale) {
+      const t = state.modalTransform;
+      if (newScale === t.scale) return;
+
+      const stage = document.getElementById('diagram-zoom-stage');
+      if (!stage) return;
+      const svgEl = stage.querySelector('svg');
+      const targetEl = svgEl || stage.querySelector('img') || stage;
+
+      const rectBefore = targetEl.getBoundingClientRect();
+      if (rectBefore.width <= 0 || rectBefore.height <= 0) return;
+
+      const fx = (clientX - rectBefore.left) / rectBefore.width;
+      const fy = (clientY - rectBefore.top) / rectBefore.height;
+
+      t.scale = newScale;
+      if (svgEl) {
+        const base = ensureSvgBaseSize(svgEl, els.diagramZoomContent);
+        if (base) {
+          const targetW = Math.max(40, Math.round(base.baseW * t.scale));
+          const targetH = Math.max(30, Math.round(base.baseH * t.scale));
+          svgEl.style.width = `${targetW}px`;
+          svgEl.style.height = `${targetH}px`;
+          svgEl.setAttribute('width', String(targetW));
+          svgEl.setAttribute('height', String(targetH));
+        }
+        const rectAfter = targetEl.getBoundingClientRect();
+        const curX = rectAfter.left + fx * rectAfter.width;
+        const curY = rectAfter.top + fy * rectAfter.height;
+        t.tx += (clientX - curX);
+        t.ty += (clientY - curY);
+        stage.style.transform = `translate(${t.tx.toFixed(1)}px, ${t.ty.toFixed(1)}px)`;
+      } else {
+        stage.style.transform = `translate(${t.tx.toFixed(1)}px, ${t.ty.toFixed(1)}px) scale(${t.scale.toFixed(3)})`;
+        const rectAfter = targetEl.getBoundingClientRect();
+        const curX = rectAfter.left + fx * rectAfter.width;
+        const curY = rectAfter.top + fy * rectAfter.height;
+        t.tx += (clientX - curX);
+        t.ty += (clientY - curY);
+        stage.style.transform = `translate(${t.tx.toFixed(1)}px, ${t.ty.toFixed(1)}px) scale(${t.scale.toFixed(3)})`;
+      }
+
+      if (els.btnModalZoomReset) {
+        els.btnModalZoomReset.textContent = `${Math.round(t.scale * 100)}%`;
+      }
+    }
+
+    function openZoomModalWithContent(innerHtml, titleHtml) {
+      state.modalTransform = { scale: 1, tx: 0, ty: 0 };
+      els.zoomModalTitle.innerHTML = titleHtml;
+      els.diagramZoomContent.innerHTML = `<div id="diagram-zoom-stage">${innerHtml}</div>`;
+      const modalSvg = els.diagramZoomContent.querySelector('svg');
+      if (modalSvg) {
+        bindMermaidInteractiveTracing(modalSvg);
+      }
+      applyModalTransform();
       els.diagramZoomModal.classList.remove('hidden');
       els.diagramZoomModal.classList.add('flex');
+    }
+
+    function openImageLightbox(srcUrl, titleText) {
+      if (!srcUrl) return;
+      openZoomModalWithContent(
+        `<img src="${escapeHtml(srcUrl)}" alt="${escapeHtml(titleText || '')}" class="max-w-full max-h-[82vh] object-contain rounded-lg shadow-lg pointer-events-none" />`,
+        `<i class="fa-regular fa-image text-indigo-400 mr-2"></i>圖片全螢幕檢視：${escapeHtml(titleText || '')}`
+      );
     }
 
     function bindAllEvents() {
@@ -2141,6 +2723,7 @@
       });
 
       els.btnLoadSample.addEventListener('click', () => {
+        state.diagramTransforms.clear();
         loadDefaultProject();
         showToast('已載入預設範例專案！', 'info');
       });
@@ -2190,48 +2773,164 @@
         persistCurrentSession();
       });
 
-      let pan = { active: false, box: null, wrapper: null, sx: 0, sy: 0, sl: 0, st: 0, dist: 0 };
+      // Mermaid 內嵌畫布：支援滑鼠滾輪以游標位置為精準中心進行細膩縮放
+      els.markdownPreview.addEventListener('wheel', (e) => {
+        const box = e.target.closest('.mermaid-svg-box');
+        const wrapper = e.target.closest('.mermaid-wrapper');
+        if (!box || !wrapper) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const idx = Number(wrapper.getAttribute('data-mermaid-index'));
+        const t = getMermaidTransform(idx);
+        const newScale = computeSmoothZoomScale(t.scale, e);
+        if (newScale === t.scale) return;
+
+        zoomMermaidAtPoint(wrapper, e.clientX, e.clientY, newScale);
+      }, { passive: false });
+
+      // Mermaid 內嵌畫布：按住左鍵自由平移 (2D 向量平移) & 點擊左鍵開啟選單
+      let pan = { active: false, box: null, wrapper: null, idx: 0, sx: 0, sy: 0, startTx: 0, startTy: 0, dist: 0 };
       els.markdownPreview.addEventListener('mousedown', (e) => {
         if (e.button !== 0 || e.target.closest('button')) return;
         const box = e.target.closest('.mermaid-svg-box');
         const wrapper = e.target.closest('.mermaid-wrapper');
         if (!box || !wrapper) return;
-        pan = { active: true, box, wrapper, sx: e.clientX, sy: e.clientY, sl: box.scrollLeft, st: els.previewScrollContainer.scrollTop, dist: 0 };
+        e.preventDefault();
+        const idx = Number(wrapper.getAttribute('data-mermaid-index'));
+        const t = getMermaidTransform(idx);
+        pan = { active: true, box, wrapper, idx, sx: e.clientX, sy: e.clientY, startTx: t.tx, startTy: t.ty, dist: 0 };
       });
       window.addEventListener('mousemove', (e) => {
         if (!pan.active || !pan.box) return;
         const dx = e.clientX - pan.sx, dy = e.clientY - pan.sy;
         pan.dist = Math.hypot(dx, dy);
-        if (pan.dist >= 5) {
+        if (pan.dist >= 4) {
           pan.box.classList.add('is-panning');
-          pan.box.scrollLeft = pan.sl - dx;
-          els.previewScrollContainer.scrollTop = pan.st - dy;
+          const t = getMermaidTransform(pan.idx);
+          t.tx = pan.startTx + dx;
+          t.ty = pan.startTy + dy;
+          applyMermaidTransformToWrapper(pan.wrapper);
         }
       });
       window.addEventListener('mouseup', (e) => {
         if (!pan.active) return;
         if (pan.box) pan.box.classList.remove('is-panning');
+        const wasClick = pan.dist < 5;
+        const targetWrapper = pan.wrapper;
         pan.active = false;
-        if (pan.dist < 5 && pan.wrapper) {
-          openMermaidContextMenu(Number(pan.wrapper.getAttribute('data-mermaid-index')), e.clientX, e.clientY);
+        if (wasClick && targetWrapper && !e.target.closest('button') && !e.target.closest('g.node') && !e.target.closest('g.edgePath')) {
+          openMermaidContextMenu(Number(targetWrapper.getAttribute('data-mermaid-index')), e.clientX, e.clientY);
         }
       });
 
+      // 全螢幕放大檢視燈箱：支援滑鼠滾輪以游標位置為中心縮放、按住拖拉平移、雙擊重置與按鈕控制
+      els.diagramZoomContent.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const t = state.modalTransform;
+        const newScale = computeSmoothZoomScale(t.scale, e);
+        if (newScale === t.scale) return;
+
+        zoomModalAtPoint(e.clientX, e.clientY, newScale);
+      }, { passive: false });
+
+      let modalPan = { active: false, sx: 0, sy: 0, startTx: 0, startTy: 0 };
+      els.diagramZoomContent.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        modalPan = { active: true, sx: e.clientX, sy: e.clientY, startTx: state.modalTransform.tx, startTy: state.modalTransform.ty };
+        els.diagramZoomContent.classList.add('is-panning');
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!modalPan.active) return;
+        state.modalTransform.tx = modalPan.startTx + (e.clientX - modalPan.sx);
+        state.modalTransform.ty = modalPan.startTy + (e.clientY - modalPan.sy);
+        applyModalTransform();
+      });
+      window.addEventListener('mouseup', () => {
+        if (!modalPan.active) return;
+        modalPan.active = false;
+        els.diagramZoomContent.classList.remove('is-panning');
+      });
+      els.diagramZoomContent.addEventListener('dblclick', () => {
+        state.modalTransform = { scale: 1, tx: 0, ty: 0 };
+        applyModalTransform();
+      });
+
+      els.btnModalZoomIn?.addEventListener('click', () => {
+        const rect = els.diagramZoomContent.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const newScale = Math.min(12, Number((state.modalTransform.scale + 0.1).toFixed(2)));
+        zoomModalAtPoint(cx, cy, newScale);
+      });
+      els.btnModalZoomOut?.addEventListener('click', () => {
+        const rect = els.diagramZoomContent.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const newScale = Math.max(0.2, Number((state.modalTransform.scale - 0.1).toFixed(2)));
+        zoomModalAtPoint(cx, cy, newScale);
+      });
+      els.btnModalZoomReset?.addEventListener('click', () => {
+        state.modalTransform = { scale: 1, tx: 0, ty: 0 };
+        applyModalTransform();
+      });
+
       els.markdownPreview.addEventListener('click', (e) => {
+        // 內嵌 Mermaid 圖表頂部縮放與重置按鈕群
+        const zoomInBtn = e.target.closest('.btn-mermaid-zoom-in');
+        if (zoomInBtn) {
+          zoomMermaidWrapper(zoomInBtn.closest('.mermaid-wrapper'), 0.1, false);
+          return;
+        }
+        const zoomOutBtn = e.target.closest('.btn-mermaid-zoom-out');
+        if (zoomOutBtn) {
+          zoomMermaidWrapper(zoomOutBtn.closest('.mermaid-wrapper'), -0.1, false);
+          return;
+        }
+        const zoomResetBtn = e.target.closest('.btn-mermaid-zoom-reset') || e.target.closest('.btn-mermaid-pan-reset');
+        if (zoomResetBtn) {
+          zoomMermaidWrapper(zoomResetBtn.closest('.mermaid-wrapper'), 0, true);
+          return;
+        }
+
         const clickedImg = e.target.closest('img');
         if (clickedImg && !clickedImg.closest('.mermaid-wrapper')) {
           const parentLink = clickedImg.closest('a');
           if (parentLink) {
-            // 若包覆圖片的 <a> 是指向外部網頁 (例如 [![alt](img)](https://google.com))，直接放行讓瀏覽器在新分頁開啟目標網頁！
             if (parentLink.getAttribute('data-external-link') === 'true') {
               return;
             }
-            // 若包覆圖片的 <a> 是指向圖片本身 (例如 Comparison_Matrix.md 的 <a href="xxx.png"><img src="xxx.png"/></a>)，則攔截並開啟全螢幕放大燈箱
             e.preventDefault();
             e.stopPropagation();
           }
           const title = clickedImg.getAttribute('title') || clickedImg.getAttribute('alt') || clickedImg.getAttribute('data-original-src') || '圖片預覽';
           openImageLightbox(clickedImg.src, title);
+          return;
+        }
+
+        const toggleModeBtn = e.target.closest('.btn-toggle-diagram-mode');
+        if (toggleModeBtn) {
+          const w = toggleModeBtn.closest('.mermaid-wrapper');
+          if (!w) return;
+          const idx = Number(w.getAttribute('data-mermaid-index'));
+          const currentMode = getDiagramMode(idx);
+          const modes = ['basis', 'orthogonal', 'step', 'linear'];
+          const nextIndex = (modes.indexOf(currentMode) + 1) % modes.length;
+          const nextMode = modes[nextIndex];
+
+          if (state.applyModeToAll) {
+            state.globalMermaidMode = nextMode;
+            els.globalMermaidModeSelect.value = nextMode;
+            showToast(`已切換全部圖表連線為：${MODE_LABELS[nextMode] || nextMode}`, 'info');
+            renderDocument();
+          } else {
+            state.perDiagramMode.set(idx, nextMode);
+            showToast(`已切換圖表 #${idx + 1} 連線為：${MODE_LABELS[nextMode] || nextMode}`, 'info');
+            renderSingleMermaidWrapper(w);
+          }
+          persistCurrentSession();
           return;
         }
 
@@ -2246,10 +2945,10 @@
         if (zoomBtn) {
           const svg = zoomBtn.closest('.mermaid-wrapper')?.querySelector('svg');
           if (svg) {
-            els.zoomModalTitle.innerHTML = `<i class="fa-solid fa-magnifying-glass-plus text-indigo-400 mr-2"></i>Mermaid 圖表全螢幕檢視`;
-            els.diagramZoomContent.innerHTML = svg.outerHTML;
-            els.diagramZoomModal.classList.remove('hidden');
-            els.diagramZoomModal.classList.add('flex');
+            openZoomModalWithContent(
+              svg.outerHTML,
+              `<i class="fa-solid fa-magnifying-glass-plus text-indigo-400 mr-2"></i>Mermaid 圖表全螢幕檢視`
+            );
           }
           return;
         }
@@ -2308,10 +3007,10 @@
         const svg = getActiveMermaidWrapper()?.querySelector('svg');
         closeMermaidContextMenu();
         if (svg) {
-          els.zoomModalTitle.innerHTML = `<i class="fa-solid fa-magnifying-glass-plus text-indigo-400 mr-2"></i>Mermaid 圖表全螢幕檢視`;
-          els.diagramZoomContent.innerHTML = svg.outerHTML;
-          els.diagramZoomModal.classList.remove('hidden');
-          els.diagramZoomModal.classList.add('flex');
+          openZoomModalWithContent(
+            svg.outerHTML,
+            `<i class="fa-solid fa-magnifying-glass-plus text-indigo-400 mr-2"></i>Mermaid 圖表全螢幕檢視`
+          );
         }
       });
       els.ctxBtnCopySource.addEventListener('click', () => {
@@ -2436,6 +3135,19 @@
       try { loadDefaultProject(); } catch (e) {}
       try { checkPreviousSessionPrompt(); } catch (e) {}
       try { initPwaFileHandler(); } catch (e) {}
+
+      // 監聽 Web Fonts 載入完成事件，避免字型置換引發節點尺寸與行高計算漂移
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          if (state.mermaidCache.size > 0) {
+            state.mermaidCache.clear();
+            const wrappers = els.markdownPreview?.querySelectorAll('.mermaid-wrapper');
+            if (wrappers && wrappers.length > 0) {
+              wrappers.forEach((w) => renderSingleMermaidWrapper(w, activeRenderToken));
+            }
+          }
+        });
+      }
     });
   </script>
 </body>
