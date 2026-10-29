@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Markdown &amp; Mermaid 即時預覽編輯器 v8.7</title>
+  <title>Markdown &amp; Mermaid 即時預覽編輯器 v8.8</title>
   <meta name="theme-color" content="#4f46e5" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/markdown.png" />
@@ -77,8 +77,9 @@
     /* 支援表格內 <a href="..."><img src="..." width="300"/></a> 固定寬度矩陣排版與標準圖片互動 */
     .markdown-body img { border-radius: 0.375rem; transition: transform 0.15s ease, box-shadow 0.15s ease; display: inline-block; cursor: zoom-in; }
     .markdown-body table img { max-width: none !important; height: auto; }
-    .markdown-body img:hover { transform: scale(1.015); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25); }
+    .markdown-body a[data-external-link="true"] { display: inline-block; position: relative; text-decoration: none; }
     .markdown-body a[data-external-link="true"] img { cursor: pointer; }
+    .markdown-body a[data-external-link="true"]:hover img { outline: 2px solid #6366f1; outline-offset: 2px; }
 
     .code-block-wrapper { position: relative; margin-bottom: 1.25em; border-radius: 0.65rem; overflow: hidden; border: 1px solid #e2e8f0; background-color: #f8fafc; }
     .dark .code-block-wrapper { border-color: #334155; background-color: #0d1117; }
@@ -271,13 +272,13 @@
           <h1 class="font-bold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white truncate">Markdown &amp; Mermaid 即時預覽器</h1>
           <!-- 醒目版號徽章 -->
           <span id="app-version-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/90 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shrink-0">
-            v8.7
+            v8.8
           </span>
           <span class="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
-            <i class="fa-solid fa-compass-drafting text-[10px]"></i> 完整圖片語法 + 資料夾樹 + 90° 拉直線
+            <i class="fa-solid fa-compass-drafting text-[10px]"></i> 完整圖片語法 + 資料夾樹 + 走線追蹤
           </span>
         </div>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate">支援標準/參考式/HTML 圖片矩陣、./ 與 ../ 相對路徑、[![alt](img)](url) 超連結跳轉與 Ctrl+V 貼圖</p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate" title="支援標準/參考式/HTML 圖片矩陣、./ 與 ../ 相對路徑、圖文超連結 [![alt](img)](url) 跳轉與 Ctrl+V 貼圖">支援標準/參考式/HTML 圖片矩陣、<code class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">./</code> 與 <code class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">../</code> 相對路徑、圖文超連結跳轉與 <kbd class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px] border border-slate-300 dark:border-slate-700">Ctrl+V</kbd> 貼圖</p>
       </div>
     </div>
 
@@ -403,9 +404,9 @@
       </label>
 
       <div class="hidden md:flex items-center bg-slate-200/70 dark:bg-slate-800 rounded-lg p-0.5 text-[11px]">
-        <button data-layout="38" type="button" class="layout-preset-btn px-2 py-0.5 rounded-md font-medium bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-2xs transition cursor-pointer">標準 38:62</button>
+        <button data-layout="38" type="button" class="layout-preset-btn px-2 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">標準 38:62</button>
         <button data-layout="50" type="button" class="layout-preset-btn px-2 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">均分 50:50</button>
-        <button data-layout="0" type="button" class="layout-preset-btn px-2 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">專注預覽</button>
+        <button data-layout="0" type="button" class="layout-preset-btn px-2 py-0.5 rounded-md font-medium bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-2xs transition cursor-pointer">專注預覽</button>
       </div>
     </div>
   </div>
@@ -415,10 +416,10 @@
     <button id="tab-mobile-tree" type="button" class="flex-1 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 flex items-center justify-center gap-1">
       <i class="fa-solid fa-folder-tree"></i><span>檔案樹</span>
     </button>
-    <button id="tab-mobile-editor" type="button" class="flex-1 py-2.5 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1">
+    <button id="tab-mobile-editor" type="button" class="flex-1 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 flex items-center justify-center gap-1">
       <i class="fa-solid fa-pen-to-square"></i><span>Markdown 編輯</span>
     </button>
-    <button id="tab-mobile-preview" type="button" class="flex-1 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 flex items-center justify-center gap-1">
+    <button id="tab-mobile-preview" type="button" class="flex-1 py-2.5 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1">
       <i class="fa-solid fa-eye"></i><span>即時預覽</span>
     </button>
   </div>
@@ -471,7 +472,7 @@
     <div id="tree-splitter" title="左右拖拉調整檔案樹寬度" class="resizer-handle hidden md:block bg-slate-200/80 dark:bg-slate-800 hover:bg-indigo-500/25"></div>
 
     <!-- 欄位 2：Markdown 編輯視窗 -->
-    <section id="left-pane" style="width: 36%;" class="w-full md:w-[36%] h-full flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 min-w-[220px] max-w-full">
+    <section id="left-pane" style="width: 36%;" class="w-full md:hidden h-full flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shrink-0 min-w-[220px] max-w-full">
       <div class="h-8 px-3 bg-slate-50/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
         <div class="flex items-center gap-2 min-w-0">
           <i class="fa-solid fa-code text-indigo-500 shrink-0"></i>
@@ -500,13 +501,13 @@
 
       <div class="flex-1 relative min-h-0">
         <textarea id="markdown-input" spellcheck="false"
-          placeholder="在此貼上、輸入 Markdown（完整支援 ![alt](url 'title')、./ 與 ../ 本地圖片、參考式圖片 [id]、[![alt](img)](url) 超連結跳轉、<a href><img width=300/></a> 矩陣與 Ctrl+V 貼圖）..."
+          placeholder="在此貼上、輸入 Markdown（完整支援 ![alt](url 'title')、./ 與 ../ 本地圖片、參考式圖片 [id]、圖文超連結 [![alt](img)](url) 跳轉、<a href><img width=300/></a> 矩陣與 Ctrl+V 貼圖）..."
           class="w-full h-full p-4 bg-transparent text-slate-800 dark:text-slate-100 font-mono text-sm leading-relaxed resize-none focus:outline-none"></textarea>
       </div>
     </section>
 
     <!-- 編輯器與預覽區分隔線 -->
-    <div id="splitter" title="左右拖拉調整編輯器與預覽視窗比例" class="resizer-handle hidden md:block bg-slate-200/80 dark:bg-slate-800 hover:bg-indigo-500/25"></div>
+    <div id="splitter" title="左右拖拉調整編輯器與預覽視窗比例" class="resizer-handle hidden bg-slate-200/80 dark:bg-slate-800 hover:bg-indigo-500/25"></div>
 
     <!-- 欄位 3：右側即時渲染預覽視窗 -->
     <section id="right-pane" class="hidden md:flex flex-1 h-full flex-col bg-white dark:bg-slate-950 min-w-[260px] overflow-hidden">
@@ -541,8 +542,8 @@
       <span id="stat-mermaid">Mermaid 圖表：0</span>
     </div>
     <div class="flex items-center gap-3 shrink-0">
-      <span id="split-ratio-label" class="hidden md:inline">版面比例：36% / 64%</span>
-      <span class="text-indigo-600 dark:text-indigo-400 font-semibold font-mono">v8.7 • 互動式走線追蹤 &amp; 平滑曲線 / 90° 正交引擎</span>
+      <span id="split-ratio-label" class="hidden md:inline">版面比例：專注預覽 (100%)</span>
+      <span class="text-indigo-600 dark:text-indigo-400 font-semibold font-mono">v8.8 • 專注預覽模式 &amp; 互動式走線追蹤</span>
     </div>
   </footer>
 
@@ -680,7 +681,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 text-white mb-3 shrink-0">
       <div class="flex items-center gap-3 min-w-0">
         <span id="zoom-modal-title" class="text-sm font-medium truncate"><i class="fa-solid fa-magnifying-glass-plus text-indigo-400 mr-2"></i>全螢幕檢視</span>
-        <span class="hidden sm:inline-block text-[11px] text-slate-400">（滾輪：放大縮小｜按住左鍵拖拉：平移畫布｜雙擊：重置）</span>
+        <span class="hidden sm:inline-block text-[11px] text-slate-400">（按住 Ctrl + 滾輪 或 工具列按鈕：放大縮小｜按住左鍵拖拉：平移畫布｜雙擊：重置）</span>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
         <div class="flex items-center bg-slate-800/90 border border-slate-700 rounded-lg p-0.5 text-xs">
@@ -698,10 +699,10 @@
   <div id="toast-container" class="fixed bottom-10 right-5 z-[110] flex flex-col gap-2 pointer-events-none"></div>
 
   <script>
-    const APP_VERSION = 'v8.7';
+    const APP_VERSION = 'v8.8';
 
     const SafeStorage = {
-      KEY: 'md_mermaid_viewer_session_v8_7',
+      KEY: 'md_mermaid_viewer_session_v8_8',
       save(payload) {
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
@@ -712,7 +713,7 @@
       load() {
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
-            const raw = window.localStorage.getItem(this.KEY) || window.localStorage.getItem('md_mermaid_viewer_session_v8_6');
+            const raw = window.localStorage.getItem(this.KEY) || window.localStorage.getItem('md_mermaid_viewer_session_v8_7') || window.localStorage.getItem('md_mermaid_viewer_session_v8_6');
             return raw ? JSON.parse(raw) : null;
           }
         } catch (err) {
@@ -748,7 +749,7 @@
           '| **開啟單一檔案** | 直接將 `.md` / `.mmd` / `.txt` 拖入視窗，或在電腦上雙擊 `.md` 檔 | 立即載入文件內容並於右側同步渲染 |',
           '| **切換 Mermaid 連線模式** | **滑鼠左鍵點擊** 右側任一 Mermaid 圖表（或點擊圖表右上角按鈕） | 可自由切換 **90° 直角正交拉直線**、**階梯線**、**直接直線** 與 **平滑曲線** |',
           '| **高解析度圖表匯出** | 左鍵點擊 Mermaid 圖表開啟選單 ➔ 選擇 **1x ~ 4x** 倍率與底色 | 支援匯出無損 **SVG 向量圖**、高解析 **PNG 圖片** 與 **PDF 文件** |',
-          '| **圖表無段縮放與自由平移** | 在圖表上**滾動滑鼠滾輪**（或點右上角 `＋ / － / 100%`）可無段放大縮小；**按住左鍵拖拉**可 360° 自由平移畫布 | 內嵌預覽與全螢幕檢視皆支援獨立縮放與平移 |',
+          '| **圖表無段縮放與自由平移** | 在圖表上按住 **Ctrl + 滾動滾輪**（或點右上角 `＋ / － / 100%`）可無段放大縮小；**按住左鍵拖拉**可 360° 自由平移畫布 | 內嵌預覽與全螢幕檢視皆支援獨立縮放與平移 |',
           '| **剪貼簿快速貼圖** | 在左側編輯區直接按 **`Ctrl + V`** 貼上螢幕截圖 | 自動將截圖轉為本地圖片連結並即時顯示於預覽區 |',
           '',
           '---',
@@ -2035,13 +2036,13 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-1.5">
                   <div class="inline-flex items-center bg-slate-200/75 dark:bg-slate-800 rounded-lg p-0.5 text-[11px] border border-slate-300/60 dark:border-slate-700">
-                    <button type="button" class="btn-mermaid-zoom-out px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="縮小圖表 (或直接在圖表滾動滑鼠滾輪)">
+                    <button type="button" class="btn-mermaid-zoom-out px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="縮小圖表 (或按住 Ctrl + 滾動滑鼠滾輪)">
                       <i class="fa-solid fa-minus text-[10px]"></i>
                     </button>
                     <button type="button" class="btn-mermaid-zoom-reset px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 font-mono font-semibold text-indigo-600 dark:text-indigo-400 min-w-[46px] text-center transition cursor-pointer" title="點擊重置縮放與平移位置 (100%)">
                       100%
                     </button>
-                    <button type="button" class="btn-mermaid-zoom-in px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="放大圖表 (或直接在圖表滾動滑鼠滾輪)">
+                    <button type="button" class="btn-mermaid-zoom-in px-2 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="放大圖表 (或按住 Ctrl + 滾動滑鼠滾輪)">
                       <i class="fa-solid fa-plus text-[10px]"></i>
                     </button>
                     <button type="button" class="btn-mermaid-pan-reset px-1.5 py-0.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition cursor-pointer" title="置中並重設視角">
@@ -2060,7 +2061,11 @@
                 </div>
               </div>
               <div class="mermaid-body relative p-4 sm:p-6 flex flex-col items-center justify-center min-h-[140px]">
-                <div class="mermaid-svg-box w-full flex justify-center" title="滾輪：放大縮小圖表｜按住左鍵拖拉：自由平移畫布｜點擊左鍵：開啟渲染模式與另存選單"></div>
+                <div class="mermaid-svg-box w-full flex justify-center" title="按住 Ctrl + 滾輪：放大縮小圖表｜按住左鍵拖拉：自由平移畫布｜點擊左鍵：開啟渲染模式與另存選單"></div>
+                <div class="mermaid-zoom-ctrl-hint pointer-events-none absolute bottom-3 px-3 py-1 rounded-full bg-slate-900/85 dark:bg-slate-800/90 text-white text-[11px] font-medium shadow-lg backdrop-blur-xs opacity-0 transition-opacity duration-200 z-10 flex items-center gap-1.5">
+                  <span class="px-1.5 py-0.2 rounded bg-slate-700/80 text-[10px] font-mono border border-slate-600">Ctrl</span>
+                  <span>+ 滾動滑鼠滾輪以縮放圖表</span>
+                </div>
                 <div class="mermaid-error-box hidden w-full"></div>
               </div>
             </div>
@@ -2696,19 +2701,62 @@
       });
       window.addEventListener('mouseup', () => { resizingTree = false; resizingEditor = false; });
 
+      function setLayoutPreset(val) {
+        document.querySelectorAll('.layout-preset-btn').forEach((btn) => {
+          const bVal = Number(btn.getAttribute('data-layout'));
+          if (bVal === val) {
+            btn.className = 'layout-preset-btn px-2 py-0.5 rounded-md font-medium bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-2xs transition cursor-pointer';
+          } else {
+            btn.className = 'layout-preset-btn px-2 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer';
+          }
+        });
+
+        if (val === 0) {
+          els.leftPane.classList.add('md:hidden');
+          els.splitter.classList.add('md:hidden');
+          if (els.splitRatioLabel) els.splitRatioLabel.textContent = '版面比例：專注預覽 (100%)';
+        } else {
+          els.leftPane.classList.remove('md:hidden');
+          els.splitter.classList.remove('md:hidden');
+          els.leftPane.style.width = `${val}%`;
+          if (els.splitRatioLabel) els.splitRatioLabel.textContent = `版面比例：${val}% / ${100 - val}%`;
+        }
+      }
+      window.setLayoutPreset = setLayoutPreset;
+
       document.querySelectorAll('.layout-preset-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           const val = Number(btn.getAttribute('data-layout'));
-          if (val === 0) {
-            els.leftPane.classList.add('md:hidden');
-            els.splitter.classList.add('md:hidden');
-          } else {
-            els.leftPane.classList.remove('md:hidden');
-            els.splitter.classList.remove('md:hidden');
-            els.leftPane.style.width = `${val}%`;
-          }
+          setLayoutPreset(val);
         });
       });
+
+      // 行動版頁籤切換
+      if (els.tabMobileTree && els.tabMobileEditor && els.tabMobilePreview) {
+        const switchMobileTab = (activeTab) => {
+          [els.tabMobileTree, els.tabMobileEditor, els.tabMobilePreview].forEach((btn) => {
+            btn.className = btn === activeTab
+              ? 'flex-1 py-2.5 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1'
+              : 'flex-1 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 flex items-center justify-center gap-1';
+          });
+          if (activeTab === els.tabMobileTree) {
+            els.fileTreePane.classList.remove('hidden');
+            els.leftPane.classList.add('hidden');
+            els.rightPane.classList.add('hidden');
+          } else if (activeTab === els.tabMobileEditor) {
+            els.fileTreePane.classList.add('hidden');
+            els.leftPane.classList.remove('hidden', 'md:hidden');
+            els.rightPane.classList.add('hidden');
+          } else {
+            els.fileTreePane.classList.add('hidden');
+            els.leftPane.classList.add('hidden');
+            els.rightPane.classList.remove('hidden');
+          }
+        };
+        els.tabMobileTree.addEventListener('click', () => switchMobileTab(els.tabMobileTree));
+        els.tabMobileEditor.addEventListener('click', () => switchMobileTab(els.tabMobileEditor));
+        els.tabMobilePreview.addEventListener('click', () => switchMobileTab(els.tabMobilePreview));
+      }
 
       document.querySelectorAll('[data-snippet]').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -2773,11 +2821,28 @@
         persistCurrentSession();
       });
 
-      // Mermaid 內嵌畫布：支援滑鼠滾輪以游標位置為精準中心進行細膩縮放
+      // Mermaid 內嵌畫布：僅在按住 Ctrl 鍵 (或 Cmd 鍵) 滾動滑鼠滾輪時進行縮放，未按 Ctrl 時正常滾動閱讀文件
+      let wheelHintTimer = null;
       els.markdownPreview.addEventListener('wheel', (e) => {
         const box = e.target.closest('.mermaid-svg-box');
         const wrapper = e.target.closest('.mermaid-wrapper');
         if (!box || !wrapper) return;
+
+        // 若未按住 Ctrl 鍵 (Windows/Linux) 或 Meta 鍵 (Mac Cmd)，完全不攔截滾輪，讓頁面自然順暢上下捲動
+        if (!e.ctrlKey && !e.metaKey) {
+          const hint = wrapper.querySelector('.mermaid-zoom-ctrl-hint');
+          if (hint) {
+            hint.classList.remove('opacity-0', 'pointer-events-none');
+            hint.classList.add('opacity-100');
+            clearTimeout(wheelHintTimer);
+            wheelHintTimer = setTimeout(() => {
+              hint.classList.remove('opacity-100');
+              hint.classList.add('opacity-0', 'pointer-events-none');
+            }, 1200);
+          }
+          return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -2824,8 +2889,9 @@
         }
       });
 
-      // 全螢幕放大檢視燈箱：支援滑鼠滾輪以游標位置為中心縮放、按住拖拉平移、雙擊重置與按鈕控制
+      // 全螢幕放大檢視燈箱：僅在按住 Ctrl 鍵時以游標位置為中心縮放 (或使用頂部放大縮小按鈕)
       els.diagramZoomContent.addEventListener('wheel', (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
         e.preventDefault();
         e.stopPropagation();
         const t = state.modalTransform;
@@ -3132,6 +3198,7 @@
       try { configureMarked(); } catch (e) {}
       try { initFileAndFolderDragDrop(); } catch (e) {}
       try { bindAllEvents(); } catch (e) {}
+      try { setLayoutPreset(0); } catch (e) {}
       try { loadDefaultProject(); } catch (e) {}
       try { checkPreviousSessionPrompt(); } catch (e) {}
       try { initPwaFileHandler(); } catch (e) {}
