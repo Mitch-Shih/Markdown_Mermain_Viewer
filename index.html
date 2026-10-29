@@ -857,8 +857,8 @@
           'flowchart LR',
           '    START(["🟢 開始作業"]) --> INPUT["📥 載入輸入資料"]',
           '    INPUT --> VALID{"🔍 格式驗證是否通過?"}',
-          '    VALID -->|是 (Pass)| PROCESS["⚙️ 執行核心轉換處理"]',
-          '    VALID -->|否 (Fail)| ERROR["⚠️ 記錄錯誤並提示修正"]',
+          '    VALID -->|"是 (Pass)"| PROCESS["⚙️ 執行核心轉換處理"]',
+          '    VALID -->|"否 (Fail)"| ERROR["⚠️ 記錄錯誤並提示修正"]',
           '    ERROR --> INPUT',
           '    PROCESS --> EXPORT["📤 匯出最終報告"] --> DONE(["🏁 完成"])',
           FENCE
@@ -1273,26 +1273,168 @@
       buildTreeNodes(root, 0);
     }
 
+    /*************************************************************************
+     * 4.5 本機資料夾持續授權與 IndexedDB 存取控制代碼管理
+     *************************************************************************/
+    const IDB_HANDLE_KEY = 'mdviewer_last_dir_handle';
+    function getHandleDB() {
+      return new Promise((resolve) => {
+        try {
+          const req = indexedDB.open('MDViewerHandleDB', 1);
+          req.onupgradeneeded = () => {
+            req.result.createObjectStore('handles');
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(null);
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    }
+
+    async function saveDirectoryHandleToIDB(handle) {
+      if (!handle) return;
+      try {
+        const db = await getHandleDB();
+        if (!db) return;
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').put(handle, IDB_HANDLE_KEY);
+      } catch (e) {}
+    }
+
+    async function loadDirectoryHandleFromIDB() {
+      try {
+        const db = await getHandleDB();
+        if (!db) return null;
+        return new Promise((resolve) => {
+          try {
+            const tx = db.transaction('handles', 'readonly');
+            const req = tx.objectStore('handles').get(IDB_HANDLE_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+          } catch (e) {
+            resolve(null);
+          }
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function ensureDirectoryPermission(dirHandle) {
+      if (!dirHandle) return false;
+      if (typeof dirHandle.queryPermission !== 'function') return true;
+      try {
+        let status = await dirHandle.queryPermission({ mode: 'read' });
+        if (status === 'granted') return true;
+        status = await dirHandle.requestPermission({ mode: 'read' });
+        return status === 'granted';
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function getLocalBaseDirUri() {
+      if (window.__LOCAL_BASE_URI__) return window.__LOCAL_BASE_URI__;
+      const baseEl = document.querySelector('base[href]');
+      if (baseEl) {
+        const href = baseEl.getAttribute('href') || '';
+        if (href.startsWith('file://')) return href;
+      }
+      return '';
+    }
+
+    async function rescanViaLocalBridge(dirUri) {
+      if (!dirUri) return null;
+      const encodedDir = encodeURIComponent(dirUri);
+      const ts = Date.now();
+      // 1. 優先使用 fetch 呼叫本機背景掃描服務
+      try {
+        const resp = await fetch(`http://127.0.0.1:18923/rescan?dir=${encodedDir}&t=${ts}`, { cache: 'no-store' });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.status === 'ok' && Array.isArray(data.files)) {
+            return data;
+          }
+        }
+      } catch (e) {}
+
+      // 2. 備援：使用 JSONP script 注入（不受 file:// Private Network Access 限制）
+      return new Promise((resolve) => {
+        const cbName = '__mdRescanCb_' + ts;
+        let scriptEl = null;
+        const timer = setTimeout(() => {
+          cleanup();
+          resolve(null);
+        }, 2500);
+
+        function cleanup() {
+          clearTimeout(timer);
+          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+          if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
+        }
+
+        window[cbName] = (data) => {
+          cleanup();
+          if (data && data.status === 'ok' && Array.isArray(data.files)) {
+            resolve(data);
+          } else {
+            resolve(null);
+          }
+        };
+
+        scriptEl = document.createElement('script');
+        scriptEl.src = `http://127.0.0.1:18923/rescan_jsonp?dir=${encodedDir}&cb=${cbName}&t=${ts}`;
+        scriptEl.onerror = () => {
+          cleanup();
+          resolve(null);
+        };
+        document.head.appendChild(scriptEl);
+      });
+    }
+
     async function rescanCurrentFileTree() {
+      if (!els.rescanIcon) return;
       els.rescanIcon.classList.add('fa-spin');
       try {
-        if (state.lastDirectoryHandle) {
-          const results = [];
-          const imageAssets = [];
-          await scanDirectoryHandle(state.lastDirectoryHandle, '', results, imageAssets, true);
-          if (results.length > 0 || imageAssets.length > 0) {
-            applyScannedFilesToWorkspace(results, state.lastDirectoryHandle.name, true, imageAssets);
-            showToast(`🔄 重新掃描完成：已同步 ${results.length} 個文件、${imageAssets.length} 張圖片！`, 'success');
+        // 1. 若為本機啟動模式 (__LOCAL_BASE_URI__)，直接透過本機背景掃描服務更新當前目錄結構（免開選取視窗）
+        const localBaseUri = getLocalBaseDirUri();
+        if (localBaseUri) {
+          const bridgeData = await rescanViaLocalBridge(localBaseUri);
+          if (bridgeData && bridgeData.files) {
+            applyScannedFilesToWorkspace(bridgeData.files, bridgeData.folder || state.workspaceTitle, true);
+            showToast(`重新掃描完成：已同步「${bridgeData.folder || state.workspaceTitle}」共 ${bridgeData.files.length} 個文件！`, 'success');
             return;
           }
         }
+
+        // 2. 若由瀏覽器開啟資料夾且已有 handle，直接遍歷當前目錄結構（免重選資料夾）
+        if (!state.lastDirectoryHandle) {
+          state.lastDirectoryHandle = await loadDirectoryHandleFromIDB();
+        }
+        if (state.lastDirectoryHandle) {
+          const hasPerm = await ensureDirectoryPermission(state.lastDirectoryHandle);
+          if (hasPerm) {
+            const results = [];
+            const imageAssets = [];
+            await scanDirectoryHandle(state.lastDirectoryHandle, '', results, imageAssets, true);
+            if (results.length > 0 || imageAssets.length > 0) {
+              applyScannedFilesToWorkspace(results, state.lastDirectoryHandle.name, true, imageAssets);
+              showToast(`重新掃描完成：已同步 ${results.length} 個文件、${imageAssets.length} 張圖片！`, 'success');
+              return;
+            }
+          }
+        }
+
         renderFileTree();
         renderDocument();
-        showToast('🔄 已重新整理檔案樹與圖片預覽', 'info');
+        showToast('已重新整理當前檔案樹與圖片預覽', 'info');
       } catch (err) {
-        showToast('重新掃描時需要重新選取資料夾授權', 'warning');
+        console.error('rescanCurrentFileTree error:', err);
+        renderFileTree();
+        renderDocument();
       } finally {
-        setTimeout(() => els.rescanIcon.classList.remove('fa-spin'), 400);
+        setTimeout(() => els.rescanIcon && els.rescanIcon.classList.remove('fa-spin'), 400);
       }
     }
 
@@ -1302,9 +1444,9 @@
     async function scanDirectoryHandle(handle, parentPath, results, imageAssets, isRoot = false) {
       if (!handle) return;
       const name = handle.name || 'folder';
-      const curPath = parentPath ? `${parentPath}/${name}` : name;
 
       if (handle.kind === 'file') {
+        const curPath = parentPath ? `${parentPath}/${name}` : name;
         if (isSupportedDocFile(name)) {
           try {
             const file = await handle.getFile();
@@ -1319,9 +1461,12 @@
         }
       } else if (handle.kind === 'directory') {
         if (!isRoot && IGNORED_DIRS.has(name.toLowerCase())) return;
+        const curPath = isRoot ? '' : (parentPath ? `${parentPath}/${name}` : name);
         try {
-          for await (const child of handle.values()) {
-            await scanDirectoryHandle(child, curPath, results, imageAssets, false);
+          if (typeof handle.values === 'function') {
+            for await (const child of handle.values()) {
+              await scanDirectoryHandle(child, curPath, results, imageAssets, false);
+            }
           }
         } catch (e) {}
       }
@@ -1330,9 +1475,9 @@
     async function scanFileSystemEntry(entry, parentPath, results, imageAssets, isRoot = false) {
       if (!entry) return;
       const name = entry.name || 'folder';
-      const curPath = parentPath ? `${parentPath}/${name}` : name;
 
       if (entry.isFile) {
+        const curPath = parentPath ? `${parentPath}/${name}` : name;
         if (isSupportedDocFile(name)) {
           await new Promise((resolve) => {
             entry.file(async (file) => {
@@ -1355,6 +1500,7 @@
         }
       } else if (entry.isDirectory) {
         if (!isRoot && IGNORED_DIRS.has(name.toLowerCase())) return;
+        const curPath = isRoot ? '' : (parentPath ? `${parentPath}/${name}` : name);
         const reader = entry.createReader();
         const allEntries = [];
         while (true) {
@@ -1403,7 +1549,7 @@
 
       const prevFile = state.currentFileName;
       state.fileMap.clear();
-      state.collapsedDirs.clear();
+      if (!keepCurrentIfPossible) state.collapsedDirs.clear();
 
       const allItems = results.concat(imageAssets || []);
       let commonPrefix = '';
@@ -1525,7 +1671,10 @@
           const handles = settled.filter((r) => r.status === 'fulfilled' && r.value).map((r) => r.value);
           if (handles.length > 0) {
             const dirHandle = handles.find((h) => h.kind === 'directory');
-            if (dirHandle) state.lastDirectoryHandle = dirHandle;
+            if (dirHandle) {
+              state.lastDirectoryHandle = dirHandle;
+              saveDirectoryHandleToIDB(dirHandle);
+            }
             const results = [];
             const imageAssets = [];
             for (const h of handles) {
@@ -1573,14 +1722,32 @@
         showToast('無法從拖放項目讀取檔案（請點擊頂部「開啟資料夾」按鈕）', 'warning');
       }, { capture: true });
 
-      els.btnOpenFolder.addEventListener('click', () => {
+      async function handleOpenFolderAction() {
+        if (typeof window.showDirectoryPicker === 'function') {
+          try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'read', id: 'mdviewer-root' });
+            if (dirHandle) {
+              state.lastDirectoryHandle = dirHandle;
+              await saveDirectoryHandleToIDB(dirHandle);
+              const results = [];
+              const imageAssets = [];
+              await scanDirectoryHandle(dirHandle, '', results, imageAssets, true);
+              if (results.length > 0 || imageAssets.length > 0) {
+                applyScannedFilesToWorkspace(results, dirHandle.name, false, imageAssets);
+                return;
+              }
+            }
+          } catch (err) {
+            if (err.name === 'AbortError') return;
+            console.warn('showDirectoryPicker failed, falling back to input:', err);
+          }
+        }
         els.folderInput.value = '';
         els.folderInput.click();
-      });
-      els.treeDropZone.addEventListener('click', () => {
-        els.folderInput.value = '';
-        els.folderInput.click();
-      });
+      }
+
+      els.btnOpenFolder.addEventListener('click', handleOpenFolderAction);
+      els.treeDropZone.addEventListener('click', handleOpenFolderAction);
       els.folderInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
@@ -2148,10 +2315,23 @@
       }
     }
 
+    function sanitizeMermaidCode(rawCode) {
+      if (!rawCode) return '';
+      // 自動修正常見 Mermaid 語法陷阱：箭頭標籤內包含未用雙引號包裹的括號 (例如 -->|是 (Pass)| 自動轉為 -->|"是 (Pass)"|)
+      return rawCode.replace(/(-->|---|-.->|==>|--o|--x|<-->|--)\s*\|([^"|\r\n]+)\|/g, (match, arrow, label) => {
+        const trimmed = label.trim();
+        if ((trimmed.includes('(') || trimmed.includes(')')) && !trimmed.startsWith('"') && !trimmed.endsWith('"')) {
+          return `${arrow}|"${trimmed}"|`;
+        }
+        return match;
+      });
+    }
+
     async function renderSingleMermaidWrapper(wrapper, renderToken) {
       if (!wrapper || typeof mermaid === 'undefined') return false;
       const idx = Number(wrapper.getAttribute('data-mermaid-index'));
-      const code = (currentMermaidBlocks[idx] || decodeURIComponent(wrapper.getAttribute('data-mermaid-source') || '')).trim();
+      const rawCode = (currentMermaidBlocks[idx] || decodeURIComponent(wrapper.getAttribute('data-mermaid-source') || '')).trim();
+      const code = sanitizeMermaidCode(rawCode);
       const mode = getDiagramMode(idx);
       wrapper.setAttribute('data-render-mode', mode);
 
@@ -2806,7 +2986,7 @@
         downloadFile(els.markdownInput.value, state.currentFileName.split('/').pop() || 'document.md', 'text/markdown;charset=utf-8');
       });
       els.btnDownloadHtml.addEventListener('click', () => {
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(state.currentFileName)}</title></head><body style="width:100%;max-width:none;margin:1rem 0;font-family:sans-serif;padding:0 1.5rem;box-sizing:border-box;">${els.markdownPreview.innerHTML}</body></html>`;
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(state.currentFileName)}</title></head><body style="width:100%;max-width:none;margin:1rem 0;font-family:sans-serif;padding:0 1.5rem;box-sizing:border-box;">${els.markdownPreview.innerHTML}<` + `/body><` + `/html>`;
         downloadFile(html, `${state.currentFileName.split('/').pop()}.html`, 'text/html;charset=utf-8');
       });
 
@@ -3177,6 +3357,7 @@
                 }
               } else if (handle.kind === 'directory') {
                 state.lastDirectoryHandle = handle;
+                saveDirectoryHandleToIDB(handle);
                 await scanDirectoryHandle(handle, '', results, imageAssets, true);
               }
             } catch (err) {}
@@ -3191,7 +3372,7 @@
     }
 
     /*************************************************************************
-     * 11. 啟動初始化
+     * 11. 啟動初始化與焦點監聽
      *************************************************************************/
     window.addEventListener('DOMContentLoaded', () => {
       try { configureMermaid('linear'); } catch (e) {}
@@ -3202,6 +3383,46 @@
       try { loadDefaultProject(); } catch (e) {}
       try { checkPreviousSessionPrompt(); } catch (e) {}
       try { initPwaFileHandler(); } catch (e) {}
+
+      // 嘗試自 IndexedDB 復原上一次授權的資料夾代碼
+      loadDirectoryHandleFromIDB().then((handle) => {
+        if (handle && !state.lastDirectoryHandle) {
+          state.lastDirectoryHandle = handle;
+        }
+      }).catch(() => {});
+
+      // 視窗重新取得焦點時，自動偵測當前目錄結構異動並靜默更新
+      window.addEventListener('focus', async () => {
+        try {
+          const localBaseUri = getLocalBaseDirUri();
+          if (localBaseUri) {
+            const bridgeData = await rescanViaLocalBridge(localBaseUri);
+            if (bridgeData && Array.isArray(bridgeData.files) && bridgeData.files.length > 0) {
+              const currentKeys = Array.from(state.fileMap.keys()).sort().join('|');
+              const newKeys = bridgeData.files.map((r) => r.path).sort().join('|');
+              if (currentKeys !== newKeys) {
+                applyScannedFilesToWorkspace(bridgeData.files, bridgeData.folder || state.workspaceTitle, true);
+                showToast(`偵測到本機資料夾異動，已自動更新檔案樹（共 ${bridgeData.files.length} 檔）`, 'info');
+              }
+            }
+            return;
+          }
+
+          if (!state.lastDirectoryHandle || typeof state.lastDirectoryHandle.queryPermission !== 'function') return;
+          const status = await state.lastDirectoryHandle.queryPermission({ mode: 'read' });
+          if (status === 'granted') {
+            const results = [];
+            const imageAssets = [];
+            await scanDirectoryHandle(state.lastDirectoryHandle, '', results, imageAssets, true);
+            const currentKeys = Array.from(state.fileMap.keys()).sort().join('|');
+            const newKeys = results.map((r) => r.path).sort().join('|');
+            if (currentKeys !== newKeys && results.length > 0) {
+              applyScannedFilesToWorkspace(results, state.lastDirectoryHandle.name, true, imageAssets);
+              showToast(`偵測到本機資料夾異動，已自動更新檔案樹（共 ${results.length} 檔）`, 'info');
+            }
+          }
+        } catch (e) {}
+      });
 
       // 監聽 Web Fonts 載入完成事件，避免字型置換引發節點尺寸與行高計算漂移
       if (document.fonts && document.fonts.ready) {
